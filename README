@@ -1,0 +1,7 @@
+IMPORTANTE
+Son necesarios todos los documentos para correr el programa en matlab.
+El programa principal se llama TFGmexico y corriendo ese, todos los demas son dependientes.
+Es importante descargar los archivos incluidos en el siguiente enlace de drive ya que a veces el servidor de NOAA de datos de 
+viento deniega el acceso a sus repositorios, para realizar la prueba, descargar los archivos de datos.
+https://drive.google.com/open?id=1iJ-8SODUtYGGu_PFlY6qgbDBQi4cIIVJ
+Para el funcionamiento correcto del codigo los archivos de viento deben estar en la carpeta raiz de Matlab y no en una subcarpeta.
