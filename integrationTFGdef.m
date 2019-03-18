@@ -1,4 +1,4 @@
-function [ dx ] = integrationTFGdef(t,x,g,Vwx,Vwy,mt,lon0,lat0,lon,lat,iso,mgas,mmolecular,T,hora)
+function [ dx ] = integrationTFGdef(t,x,Vwx,Vwy,mt,lon0,lat0,lon,lat,iso,mgas,mmolecular,T,hora)
 %%Variable definition for ODE%%
 X=x(1);
 Y=x(2);
@@ -6,6 +6,7 @@ Z=x(3);
 Vbx=x(4);
 Vby=x(5);
 Vbz=x(6);
+g=(3.9820e+14/(6.375e6+Z)^2);
 time=[hora*3600 (hora+3)*3600 (hora+6)*3600];
 time=single(time);
 lat1=lat0+Y/111120;
