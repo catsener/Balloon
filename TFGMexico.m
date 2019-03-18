@@ -42,7 +42,9 @@ seccf=18000+secc;%Tiempo final de vuelo de globo asumiendo maximo cinco horas%
 %% Integracion Datos y Plot %%
 %[t,x]=ode23(@(t,x) integrationTFGdef(t,x,g,Vwx,Vwy,mt,lon0,lat0,lon,lat,iso,mgas,mmolecular,T,hora),[secc:1:seccf], initialconditions);
 opts=odeset('Events',@(t,x) myEventFcn(t,x,T,iso,lat,lon,mgas,mmolecular,VB,R,lon0,lat0,hora));
-[t,x,te,xe,ie]=ode23(@(t,x) integrationTFGdef(t,x,g,Vwx,Vwy,mt,lon0,lat0,lon,lat,iso,mgas,mmolecular,T,hora), [secc:1:seccf], initialconditions,opts);
+[t,x,te,xe,ie]=ode23(@(t,x) integrationTFGdef(t,x,Vwx,Vwy,mt,lon0,lat0,lon,lat,iso,mgas,mmolecular,T,hora), [secc:1:seccf], initialconditions,opts);
+%%---x=rmmissing(x); 
+t=t(1:length(x(:,1)));
 toc
 plot(x(:,1),x(:,2))
 title('Trayectoria del globo en el plano xy')
@@ -53,3 +55,50 @@ plot(t,x(:,3))
 title('Altura del globo con respecto al tiempo')
 xlabel('Tiempo [s]')
 ylabel('Altura [m]')
+
+
+%% MODELO SIMPLIFICADO CAÍDA EN 1D %%
+m=mg; %masa
+A=0.6; %área del paracaidas
+y0=x(end,:); %[altura inicial, velocidad inicial]
+delta=0.8;       %Coeficiente de rozamiento para el drag
+t_p=20;        %tiempo que tarda en activarse el paracaídas desde que estalla el globo [s]
+%caída libre-------------
+lat0=lat0+x(end,2)/111120;
+lon0=lon0+x(end,1)/(111120*abs(cosd(lat0)));
+%%%1D-free fall----f=@(t,y)[y(2);-3.9820e+14/(6.375e6+y(1))^2];
+tspan1=[0 t_p];
+[dt1,y1]=ode45(@(t,y1)caida_libre_model(t,y1,Vwx,Vwy,lon0,lat0,lon,lat,iso,hora),tspan1,y0);
+%paracaídas se activa-------
+y02=y1(end,:); %condiciones iniciales para paracaídas
+lat0=lat0+y1(end,2)/111120;
+lon0=lon0+y1(end,1)/(111120*abs(cosd(lat0)));
+%%%%1D-parachute ----f=@(t,y)[y(2); -3.9820e+14/(6.375e6+y(1))^2+0.5*densidad_atmosfera_nasa(y(1))*delta*A*y(2)^2/m]; 
+tspan2=[0 inf]; %inf es infinito positivo
+opts=odeset('events',@detener);
+[dt2,y2]=ode45(@(t,y2)paracaidas_model(t,y2,Vwx,Vwy,lon0,lat0,lon,lat,iso,hora,delta,A,m),tspan2,y02,opts);
+y2=rmmissing(y2);
+%%Plot caída
+y=zeros(length(dt1)+length(y2(:,1)),6); %combinar ambas fases de caída y paracaídas para plotearlo
+y(1:length(dt1),:)=y1;
+y(length(dt1)+1:end,:)=y2;
+
+figure()
+plot(y(:,3),-y(:,6))
+grid on
+xlabel('x')
+ylabel('v');
+title('Caída de un paracaidista')
+
+figure()
+plot(x(:,1),x(:,2),y1(:,1),y1(:,2),y2(:,1),y2(:,2))
+title('Trayectoria del globo en el plano xy')
+xlabel('Distancia en el eje x con respecto a la longitud inicial [m]')
+ylabel('Distancia en el eje y con respecto a la latitud inicial [m]')
+figure()
+plot(t,x(:,3),t(end)+dt1,y1(:,3),t(end)+dt1(end)+dt2(1:length(y2(:,1))),y2(:,3))
+title('Altura del globo con respecto al tiempo')
+xlabel('Tiempo [s]')
+ylabel('Altura [m]')
+
+
