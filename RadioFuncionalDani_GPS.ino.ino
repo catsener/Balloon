@@ -1,46 +1,138 @@
 #define RADIOPIN 9
- 
+
+#include <SD.h>//Load the SD library
+#include <SPI.h>//Load the SPI library
+#include <Adafruit_GPS.h> //install library
+#include <SoftwareSerial.h>
+#include <Wire.h>
 #include <string.h>
 #include <util/crc16.h>
  
-
+SoftwareSerial mySerial(8,7);//initialize port
+Adafruit_GPS GPS(&mySerial); //Create GPS object
 char datastring[100];
-
+String NMEA1; //Variable for first NMEA sentence
+String NMEA2; //Variable for second NMEA sentence
+char c; //read characters from GPS
 
 void setup() {                
   pinMode(RADIOPIN,OUTPUT);
   Serial.begin(115200); //turn on serial monitor
+  delay(20);
+
+  uint8_t c;
+  GPS.begin(9600); //turn on GPS
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ); //Set update rate
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA); //rEQUEST rmc AND gga sENTENCES ONLY
+  GPS.sendCommand(PGCMD_NOANTENNA);
 }
  
 void loop() {
-//  int hora=GPS.hour;
-//  int minuto=GPS.minute;
-//  int segundo=GPS.seconds;
-//  float latitud=GPS.latitude;
-//  float longitud=GPS.longitude; /// Cambiar signo con W! mirar codigo laboratorio clase para if command
-//  float altura=GPS.altitude;
-//  String buf;
-  int hora=10;
-  int minuto=47;
-  int segundo=9;
-  float latitud=4019.9868;
-  float longitud=345.4855;      
-  float altura=715.70;
+  GPS.wakeup();
+  GPS.begin(9600);
+  readGPS();
+   while ((GPS.fix==0) || (NMEA1[21]==',')){
+  Serial.println("No Fix ");
+  readGPS();
+ }
+  Serial.println("Fixed");
+  int hora=GPS.hour;
+  int minuto=GPS.minute;
+  int segundo=GPS.seconds;
+  float latitud=GPS.latitude;
+  char NS=GPS.lat;
+  float longitud=GPS.longitude; 
+  char EW=GPS.lon;
+  float altura=GPS.altitude;
+  GPS.standby();
   String buf;
-  buf += F("$$MYPAYLOAD,");
-  buf += String(hora);           //Solucionar que sea menor de 10 para poner 0x
-  buf += String(minuto);
-  buf += String(segundo,2);
+//  int hora=10;
+//  int minuto=49;
+//  int segundo=30;
+//  float latitud=4020.9868;
+//  char NS='N';
+//  float longitud=360.4855;  
+//  char EW='W';    
+//  float altura=715.70;
+//  String buf;
+  buf += F("$$Ball12,");
+  if (hora < 10)    
+  {
+    buf +=F("0");
+    buf += String(hora); 
+  }  
+  else
+  {
+    buf += String(hora);
+  }
+    if (minuto < 10)    
+  {
+    buf +=F("0");
+    buf += String(minuto); 
+  }  
+  else
+  {
+    buf += String(minuto);
+  }
+    if (segundo < 10)    
+  {
+    buf +=F("0");
+    buf += String(segundo); 
+  }  
+  else
+  {
+    buf += String(segundo);
+  }
   buf += F(",");
-  buf += String(hora);
+  if (hora < 10)    
+  {
+    buf +=F("0");
+    buf += String(hora); 
+  }  
+  else
+  {
+    buf += String(hora);
+  }
   buf += F(":");
-  buf += String(minuto);
+  if (minuto < 10)    
+  {
+    buf +=F("0");
+    buf += String(minuto); 
+  }  
+  else
+  {
+    buf += String(minuto);
+  }
   buf += F(":");
-  buf += String(segundo);
+  if (segundo < 10)    
+  {
+    buf +=F("0");
+    buf += String(segundo); 
+  }  
+  else
+  {
+    buf += String(segundo);
+  }
   buf += F(",");
+  if (NS == 'S')
+  {
+  buf +=F("-");
   buf += String(latitud,4);
+  }
+  else
+  {
+  buf += String(latitud,4);
+  }
   buf += F(",");
+  if (EW == 'W')
+  {
+  buf +=F("-");
   buf += String(longitud,4);
+  }
+  else
+  {
+  buf += String(longitud,4);
+  }
   buf += F(",");
   buf += String(altura,4);
   Serial.println(buf);
@@ -51,7 +143,6 @@ void loop() {
   strcat(datastring,checksum_str);
  
   rtty_txstring (datastring);
-  delay(2000);
 }
  
  
@@ -145,3 +236,29 @@ uint16_t gps_CRC16_checksum (char *string)
  
   return crc;
 }    
+
+void readGPS(){
+clearGPS();
+while(!GPS.newNMEAreceived()){  //Loop until NMEA sentence
+  c=GPS.read();
+  }
+  GPS.parse(GPS.lastNMEA());//Parse that NMEA sentence
+  NMEA1=GPS.lastNMEA();
+while(!GPS.newNMEAreceived()){  //Loop until NMEA sentence
+  c=GPS.read();
+  }
+  GPS.parse(GPS.lastNMEA());//Parse that NMEA sentence
+  NMEA2=GPS.lastNMEA();
+
+}
+void clearGPS(){  //clear old and corrupt data from serial port
+  while(!GPS.newNMEAreceived()){  //Loop until NMEA sentence
+  c=GPS.read();
+  }
+  GPS.parse(GPS.lastNMEA());//Parse that NMEA sentence
+  while(!GPS.newNMEAreceived()){  //Loop until NMEA sentence
+  c=GPS.read();
+  }
+  GPS.parse(GPS.lastNMEA());//Parse that NMEA sentence
+  
+}
